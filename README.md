@@ -16,6 +16,7 @@
 
 ## ✨ Features
 
+### Core (v0.1.0)
 - **Multi-company** — Manage finances across multiple organizations from one dashboard
 - **Role-based access** — `Super Admin`, `Admin`, `Manager`, `Viewer` per company
 - **Income & Expense tracking** — with categories, tags, and descriptions
@@ -25,6 +26,23 @@
 - **Dark / Light mode** — Minimal modern UI with theme persistence
 - **100% local** — SQLite database, no external services required
 - **Docker-ready** — Single container, runs on any home server
+
+### Report Downloads (v0.2.0)
+- **Export PDF** — Color-coded transaction report with summary stats, pdfkit-generated
+- **Export CSV** — Spreadsheet-friendly with totals row
+- **Bill Preview** — Click any attachment to preview images or PDFs inline (authenticated)
+- **Configurable admin** — Set default admin credentials via env vars at first-run
+
+### Inventory & Billing (v0.3.0)
+- **Product catalog** — Name, SKU, barcode, unit price, GST rate (0/5/12/18/28%), HSN code, stock
+- **Barcode scanning** — Webcam scanner (Quagga2) to look up products instantly
+- **Barcode generation** — Display and print barcodes (JsBarcode, CODE128)
+- **Invoice builder** — Customer details, line items, intra/inter-state GST toggle
+- **GST-compliant invoices** — CGST + SGST (intra-state) or IGST (inter-state), per-slab breakdown
+- **PDF invoices** — On-the-fly generation: company header, GSTIN, tax table, totals in INR
+- **Invoice lifecycle** — Draft → Issued (auto income transaction) → Paid / Cancelled
+- **Stock management** — Auto-decrements on invoice issue for tracked products
+- **Company billing profile** — GSTIN, state code, address, phone stored per company
 
 ## 📸 Screenshots
 
@@ -93,6 +111,10 @@ All configuration is via environment variables. Set them in `.env` (copied from 
 |----------|----------|---------|-------------|
 | `JWT_SECRET` | **Yes** | — | Secret for signing JWT tokens. Use `openssl rand -base64 48` to generate. |
 | `PORT` | No | `3000` | HTTP port the server listens on |
+| `ADMIN_USERNAME` | No | `admin` | Default admin username (first-run only) |
+| `ADMIN_PASSWORD` | No | `admin123` | Default admin password (first-run only) |
+| `ADMIN_EMAIL` | No | `admin@ledgerengine.local` | Default admin email (first-run only) |
+| `ADMIN_NAME` | No | `Administrator` | Default admin display name (first-run only) |
 | `CORS_ORIGINS` | No | _(empty)_ | Comma-separated allowed origins. Leave empty for same-origin only. |
 | `DATA_DIR` | No | `/app/data` | Directory for SQLite database file |
 | `UPLOAD_DIR` | No | `/app/data/uploads` | Directory for uploaded bill attachments |
@@ -126,10 +148,20 @@ fintrack/
 ```
 
 **Tech stack:**
-- **Frontend:** React 18, Vite, Tailwind CSS, Recharts, Lucide Icons
-- **Backend:** Node.js, Express.js, better-sqlite3, JWT, bcryptjs, multer
+- **Frontend:** React 18, Vite, Tailwind CSS, Recharts, Lucide Icons, JsBarcode, Quagga2
+- **Backend:** Node.js, Express.js, better-sqlite3, JWT, bcryptjs, multer, pdfkit
 - **Database:** SQLite (single file, no server required)
-- **Container:** Docker multi-stage build (~330 MB image)
+- **Container:** Docker multi-stage build (~380 MB image)
+
+---
+
+## 📦 Releases
+
+| Version | Highlights |
+|---------|------------|
+| `v0.3.0` | Inventory & Billing module — products, barcode scan/gen, GST invoicing, PDF |
+| `v0.2.0` | Report download (PDF/CSV), bill preview modal, configurable admin |
+| `v0.1.0` | Initial release — transactions, dashboard, RBAC, Docker, security hardening |
 
 ---
 
