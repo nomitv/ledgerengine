@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Companies from './pages/Companies';
 import Settings from './pages/Settings';
+import Inventory from './pages/Inventory';
+import Billing from './pages/Billing';
+import InvoiceBuilder from './pages/InvoiceBuilder';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -28,6 +31,10 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="transactions" element={<Transactions />} />
+        <Route path="inventory" element={<Inventory />} />
+        <Route path="billing" element={<Billing />} />
+        <Route path="billing/new" element={<InvoiceBuilder />} />
+        <Route path="billing/:id/edit" element={<InvoiceBuilder />} />
         <Route path="companies" element={<Companies />} />
         <Route path="settings" element={<Settings />} />
       </Route>

@@ -92,6 +92,66 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
     CREATE INDEX IF NOT EXISTS idx_user_companies_user ON user_companies(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_companies_company ON user_companies(company_id);
+
+    -- ── v0.3.0: Inventory & Billing ─────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+      name TEXT NOT NULL,
+      sku TEXT,
+      barcode TEXT,
+      description TEXT,
+      unit_price REAL NOT NULL DEFAULT 0,
+      gst_rate REAL DEFAULT 18,
+      hsn_code TEXT,
+      stock_qty INTEGER DEFAULT 0,
+      track_stock INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+      invoice_number TEXT NOT NULL,
+      customer_name TEXT,
+      customer_gstin TEXT,
+      customer_address TEXT,
+      customer_phone TEXT,
+      customer_email TEXT,
+      status TEXT DEFAULT 'draft' CHECK(status IN ('draft','issued','paid','cancelled')),
+      subtotal REAL DEFAULT 0,
+      discount_amount REAL DEFAULT 0,
+      total_cgst REAL DEFAULT 0,
+      total_sgst REAL DEFAULT 0,
+      total_igst REAL DEFAULT 0,
+      grand_total REAL DEFAULT 0,
+      notes TEXT,
+      transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+      created_by INTEGER REFERENCES users(id),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      issued_at DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE NOT NULL,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      sku TEXT,
+      hsn_code TEXT,
+      unit_price REAL NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      gst_rate REAL DEFAULT 0,
+      cgst_rate REAL DEFAULT 0,
+      sgst_rate REAL DEFAULT 0,
+      igst_rate REAL DEFAULT 0,
+      line_total REAL DEFAULT 0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_products_company ON products(company_id);
+    CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
+    CREATE INDEX IF NOT EXISTS idx_invoices_company ON invoices(company_id);
+    CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
   `);
 
   // Seed default admin user if no users exist.
@@ -109,6 +169,16 @@ function initializeDatabase() {
       VALUES (?, ?, ?, ?, 'super_admin')
     `).run(adminUsername, adminEmail, hash, adminName);
     console.log(`✓ Default admin created  →  ${adminUsername} / ${adminPassword}`);
+  }
+
+  // ── v0.3.0 migration: add billing profile columns to companies ─────────────
+  // SQLite doesn't support ALTER TABLE ADD COLUMN IF NOT EXISTS, so we try each
+  // separately and swallow "duplicate column" errors.
+  const companyBillingCols = ['gstin', 'address', 'phone', 'email', 'logo_path', 'state_code'];
+  for (const col of companyBillingCols) {
+    try {
+      db.exec(`ALTER TABLE companies ADD COLUMN ${col} TEXT`);
+    } catch (_) { /* column already exists — safe to ignore */ }
   }
 
 }

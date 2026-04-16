@@ -1,11 +1,16 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ArrowLeftRight, Building2, Settings, LogOut, ChevronDown } from 'lucide-react';
+import {
+  LayoutDashboard, ArrowLeftRight, Building2, Settings,
+  LogOut, ChevronDown, Package, FileText
+} from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions' },
+  { to: '/inventory', icon: Package, label: 'Inventory' },
+  { to: '/billing', icon: FileText, label: 'Billing' },
   { to: '/companies', icon: Building2, label: 'Companies' },
   { to: '/settings', icon: Settings, label: 'Settings' }
 ];
@@ -19,9 +24,9 @@ export default function Sidebar({ collapsed, onToggle }) {
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-surface-100 dark:border-surface-800 shrink-0">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">F</span>
+          <span className="text-white font-bold text-sm">L</span>
         </div>
-        {!collapsed && <span className="font-semibold text-lg tracking-tight">FinTrack</span>}
+        {!collapsed && <span className="font-semibold text-lg tracking-tight">LedgerEngine</span>}
       </div>
 
       {/* Company Selector */}
@@ -36,7 +41,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                 <p className="text-xs text-surface-500 dark:text-surface-400">Company</p>
                 <p className="text-sm font-medium truncate">{selectedCompany.name}</p>
               </div>
-              <ChevronDown size={14} className={`text-surface-400 transition-transform ${showCompanyMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-surface-400 transition-transform shrink-0 ${showCompanyMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {showCompanyMenu && (
@@ -64,7 +69,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400'
                   : 'text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200'
@@ -81,7 +86,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       <div className="border-t border-surface-100 dark:border-surface-800 p-3">
         {!collapsed && (
           <div className="flex items-center gap-3 px-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-500/20 flex items-center justify-center shrink-0">
               <span className="text-primary-700 dark:text-primary-400 text-sm font-semibold">
                 {(user?.display_name || user?.username || '?')[0].toUpperCase()}
               </span>

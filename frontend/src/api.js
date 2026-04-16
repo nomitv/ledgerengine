@@ -75,5 +75,26 @@ export const api = {
   getByTag: (params) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/dashboard/by-tag?${qs}`);
-  }
+  },
+
+  // Inventory
+  getProducts: (params) => { const qs = new URLSearchParams(params).toString(); return request(`/inventory/products?${qs}`); },
+  getProductByBarcode: (code, companyId) => request(`/inventory/products/barcode/${encodeURIComponent(code)}?company_id=${companyId}`),
+  createProduct: (data) => request('/inventory/products', { method: 'POST', body: JSON.stringify(data) }),
+  updateProduct: (id, data) => request(`/inventory/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProduct: (id) => request(`/inventory/products/${id}`, { method: 'DELETE' }),
+
+  // Billing
+  getInvoices: (params) => { const qs = new URLSearchParams(params).toString(); return request(`/billing/invoices?${qs}`); },
+  getInvoice: (id) => request(`/billing/invoices/${id}`),
+  createInvoice: (data) => request('/billing/invoices', { method: 'POST', body: JSON.stringify(data) }),
+  updateInvoice: (id, data) => request(`/billing/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  issueInvoice: (id) => request(`/billing/invoices/${id}/issue`, { method: 'POST' }),
+  updateInvoiceStatus: (id, status) => request(`/billing/invoices/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  deleteInvoice: (id) => request(`/billing/invoices/${id}`, { method: 'DELETE' }),
+  downloadInvoicePdf: (id) => {
+    const token = localStorage.getItem('fintrack_token');
+    return fetch(`/api/billing/invoices/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+  },
 };
+

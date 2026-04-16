@@ -35,6 +35,8 @@ app.use('/api/companies', require('./routes/companies'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/billing', require('./routes/billing'));
 
 
 // NOTE: /uploads is NOT served statically — files are served via authenticated
