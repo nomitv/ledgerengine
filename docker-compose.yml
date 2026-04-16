@@ -1,6 +1,6 @@
 services:
   ledgerengine:
-    build: .
+    image: ghcr.io/nomitv/ledgerengine:latest
     container_name: ledgerengine
     restart: unless-stopped
     ports:
