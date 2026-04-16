@@ -52,7 +52,7 @@
 |-------|-----------|
 | ![Login screen with gradient background and minimal card](docs/login.png) | ![Dashboard with stats cards, area chart and donut chart](docs/dashboard.png) |
 
-> Screenshots are from a live running instance. Light mode also available.
+> Screenshots are from a live running instance. Dark mode also available.
 
 ## 🚀 Quick Start (Docker)
 
