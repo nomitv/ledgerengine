@@ -7,7 +7,7 @@ export default function Companies() {
   const { user, companies, refreshCompanies, selectCompany, selectedCompany } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '', currency: 'INR' });
+  const [form, setForm] = useState({ name: '', description: '', currency: 'INR', gstin: '', address: '', phone: '', email: '', state_code: '' });
   const [submitting, setSubmitting] = useState(false);
 
   // Users management
@@ -28,7 +28,11 @@ export default function Companies() {
 
   const openEdit = (c) => {
     setEditing(c);
-    setForm({ name: c.name, description: c.description || '', currency: c.currency || 'INR' });
+    setForm({
+      name: c.name, description: c.description || '', currency: c.currency || 'INR',
+      gstin: c.gstin || '', address: c.address || '', phone: c.phone || '',
+      email: c.email || '', state_code: c.state_code || ''
+    });
     setShowModal(true);
   };
 
@@ -158,7 +162,7 @@ export default function Companies() {
               </div>
               <div>
                 <label className="label">Description</label>
-                <textarea className="input" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
+                <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
               </div>
               <div>
                 <label className="label">Currency</label>
@@ -169,6 +173,37 @@ export default function Companies() {
                   <option value="GBP">GBP (£)</option>
                 </select>
               </div>
+
+              {/* Billing / GST Profile */}
+              <div className="pt-2 border-t border-surface-100 dark:border-surface-800">
+                <p className="text-sm font-semibold text-surface-700 dark:text-surface-300 mb-3 flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400">GST Billing Profile</span>
+                  <span className="text-xs font-normal text-surface-400">Used on invoices</span>
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="label">GSTIN</label>
+                    <input className="input font-mono" value={form.gstin} onChange={e => setForm(f => ({ ...f, gstin: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} />
+                  </div>
+                  <div>
+                    <label className="label">State Code</label>
+                    <input className="input" value={form.state_code} onChange={e => setForm(f => ({ ...f, state_code: e.target.value }))} placeholder="27 (Maharashtra)" />
+                  </div>
+                  <div>
+                    <label className="label">Phone</label>
+                    <input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" />
+                  </div>
+                  <div>
+                    <label className="label">Email</label>
+                    <input className="input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="billing@company.com" />
+                  </div>
+                  <div>
+                    <label className="label">Address</label>
+                    <input className="input" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Full registered address" />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
                 <button type="submit" disabled={submitting} className="btn-primary flex-1">

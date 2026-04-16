@@ -63,15 +63,26 @@ router.post('/', authenticate, requireRole('super_admin', 'admin'), (req, res) =
 // PUT /api/companies/:id
 router.put('/:id', authenticate, requireRole('super_admin', 'admin'), (req, res) => {
   try {
-    const { name, description, currency } = req.body;
-    db.prepare('UPDATE companies SET name = COALESCE(?, name), description = COALESCE(?, description), currency = COALESCE(?, currency) WHERE id = ?')
-      .run(name, description, currency, req.params.id);
+    const { name, description, currency, gstin, address, phone, email, state_code } = req.body;
+    db.prepare(`
+      UPDATE companies SET
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        currency = COALESCE(?, currency),
+        gstin = COALESCE(?, gstin),
+        address = COALESCE(?, address),
+        phone = COALESCE(?, phone),
+        email = COALESCE(?, email),
+        state_code = COALESCE(?, state_code)
+      WHERE id = ?
+    `).run(name, description, currency, gstin, address, phone, email, state_code, req.params.id);
     const company = db.prepare('SELECT * FROM companies WHERE id = ?').get(req.params.id);
     res.json(company);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // DELETE /api/companies/:id
 router.delete('/:id', authenticate, requireRole('super_admin'), (req, res) => {
