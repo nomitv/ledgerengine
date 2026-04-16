@@ -1,0 +1,29 @@
+services:
+  fintrack:
+    build: .
+    container_name: fintrack
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - fintrack-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Set JWT_SECRET in a .env file (see .env.example) — never commit real secrets
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in .env or environment}
+      # Default admin credentials (only used on first startup when DB is empty)
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ledgerengine.local}
+      - ADMIN_NAME=${ADMIN_NAME:-Administrator}
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/auth/me"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  fintrack-data:
+    driver: local
