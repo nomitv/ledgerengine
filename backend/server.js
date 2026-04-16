@@ -60,7 +60,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 FinTrack server running at http://localhost:${PORT}`);
+  console.log(`\n🚀 LedgerEngine server running at http://localhost:${PORT}`);
   if (process.env.NODE_ENV !== 'production') {
     console.log(`   Default login: admin / admin123\n`);
   }
