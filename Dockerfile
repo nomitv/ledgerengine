@@ -6,11 +6,11 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Production (debian-slim for glibc compatibility with better-sqlite3 prebuilds)
-FROM node:20-slim
+# Stage 2: Production
+FROM node:20-alpine
 WORKDIR /app
 
-# Install backend deps (better-sqlite3 prebuilds work on glibc/debian)
+# Install backend deps
 COPY backend/package*.json ./
 RUN npm install --production
 
