@@ -1,8 +1,152 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
-import { Plus, Search, Filter, Trash2, Edit3, Paperclip, X, Upload, ChevronLeft, ChevronRight, Tag, Download } from 'lucide-react';
+import {
+  Plus, Search, Filter, Trash2, Edit3, Paperclip, X, Upload,
+  ChevronLeft, ChevronRight, Tag, Download, FileText, Eye,
+  FileDown, ChevronDown
+} from 'lucide-react';
 
+// ─── Bill Preview Modal ────────────────────────────────────────────────────────
+function PreviewModal({ attachment, onClose }) {
+  const [url, setUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const isImage = attachment?.mime_type?.startsWith('image/');
+  const isPdf   = attachment?.mime_type === 'application/pdf';
+
+  useEffect(() => {
+    if (!attachment) return;
+    const token = localStorage.getItem('token');
+    fetch(`/api/transactions/attachments/${attachment.stored_name}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load file');
+        return r.blob();
+      })
+      .then(blob => setUrl(URL.createObjectURL(blob)))
+      .catch(e => setError(e.message));
+    return () => url && URL.revokeObjectURL(url);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachment]);
+
+  if (!attachment) return null;
+
+  const handleDownload = () => {
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = attachment.original_name;
+    a.click();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content max-w-3xl w-full" style={{ maxHeight: '90vh' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold truncate max-w-xs">{attachment.original_name}</h2>
+            <p className="text-xs text-surface-400 mt-0.5">{(attachment.size / 1024).toFixed(1)} KB</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleDownload} disabled={!url} className="btn-secondary text-xs py-1.5 px-3">
+              <FileDown size={14} /> Download
+            </button>
+            <button onClick={onClose} className="btn-ghost p-1.5"><X size={18} /></button>
+          </div>
+        </div>
+
+        <div className="bg-surface-100 dark:bg-surface-800 rounded-xl overflow-auto flex items-center justify-center"
+          style={{ minHeight: 320, maxHeight: 'calc(90vh - 120px)' }}>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {!url && !error && (
+            <div className="inline-flex items-center gap-2 text-surface-400">
+              <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              Loading preview…
+            </div>
+          )}
+          {url && isImage && <img src={url} alt={attachment.original_name} className="max-w-full max-h-full object-contain rounded-lg" />}
+          {url && isPdf && (
+            <iframe
+              src={url}
+              title={attachment.original_name}
+              className="w-full rounded-lg"
+              style={{ height: 'calc(90vh - 140px)' }}
+            />
+          )}
+          {url && !isImage && !isPdf && (
+            <div className="text-center p-8">
+              <FileText size={48} className="mx-auto text-surface-400 mb-3" />
+              <p className="text-surface-500 text-sm">Preview not available for this file type.</p>
+              <button onClick={handleDownload} className="btn-primary mt-4">
+                <FileDown size={16} /> Download File
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Download Dropdown ─────────────────────────────────────────────────────────
+function DownloadButton({ companyId, filters }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const download = (format) => {
+    setOpen(false);
+    const token = localStorage.getItem('token');
+    const params = new URLSearchParams({ company_id: companyId, format });
+    if (filters.from)     params.set('from', filters.from);
+    if (filters.to)       params.set('to', filters.to);
+    if (filters.type)     params.set('type', filters.type);
+
+    // Stream download via a temporary link
+    fetch(`/api/reports/transactions?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(async r => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `transactions_${new Date().toISOString().slice(0,10)}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(e => alert('Download failed: ' + e.message));
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(o => !o)} className="btn-secondary">
+        <Download size={16} /> Export <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 w-40 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl shadow-lg z-20 py-1 animate-slide-up">
+          <button onClick={() => download('csv')} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-surface-50 dark:hover:bg-surface-800">
+            <FileText size={14} className="text-surface-400" /> Download CSV
+          </button>
+          <button onClick={() => download('pdf')} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-surface-50 dark:hover:bg-surface-800">
+            <FileDown size={14} className="text-surface-400" /> Download PDF
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function Transactions() {
   const { selectedCompany, user } = useAuth();
   const [transactions, setTransactions] = useState([]);
@@ -22,12 +166,15 @@ export default function Transactions() {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Modal
+  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ type: 'expense', amount: '', description: '', category_id: '', date: new Date().toISOString().split('T')[0], tags: [] });
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Preview modal
+  const [previewAttachment, setPreviewAttachment] = useState(null);
 
   // Tag/Category creation
   const [showNewTag, setShowNewTag] = useState(false);
@@ -44,20 +191,17 @@ export default function Transactions() {
     setLoading(true);
     try {
       const params = { company_id: selectedCompany.id, page, limit: 20 };
-      if (filterType) params.type = filterType;
+      if (filterType)     params.type = filterType;
       if (filterCategory) params.category_id = filterCategory;
-      if (filterTag) params.tag_id = filterTag;
-      if (filterFrom) params.from = filterFrom;
-      if (filterTo) params.to = filterTo;
-      if (search) params.search = search;
-
+      if (filterTag)      params.tag_id = filterTag;
+      if (filterFrom)     params.from = filterFrom;
+      if (filterTo)       params.to = filterTo;
+      if (search)         params.search = search;
       const data = await api.getTransactions(params);
       setTransactions(data.transactions);
       setTotal(data.total);
       setPages(data.pages);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
     setLoading(false);
   }, [selectedCompany, page, filterType, filterCategory, filterTag, filterFrom, filterTo, search]);
 
@@ -101,12 +245,10 @@ export default function Transactions() {
     try {
       if (editing) {
         await api.updateTransaction(editing.id, {
-          type: form.type,
-          amount: parseFloat(form.amount),
+          type: form.type, amount: parseFloat(form.amount),
           description: form.description,
           category_id: form.category_id ? parseInt(form.category_id) : null,
-          date: form.date,
-          tags: form.tags
+          date: form.date, tags: form.tags
         });
         if (files.length > 0) {
           const fd = new FormData();
@@ -127,20 +269,14 @@ export default function Transactions() {
       }
       setShowModal(false);
       fetchTransactions();
-    } catch (err) {
-      alert(err.message);
-    }
+    } catch (err) { alert(err.message); }
     setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this transaction?')) return;
-    try {
-      await api.deleteTransaction(id);
-      fetchTransactions();
-    } catch (err) {
-      alert(err.message);
-    }
+    try { await api.deleteTransaction(id); fetchTransactions(); }
+    catch (err) { alert(err.message); }
   };
 
   const toggleTag = (tagId) => {
@@ -156,11 +292,8 @@ export default function Transactions() {
       const tag = await api.createTag({ name: newTagName, color: newTagColor, company_id: selectedCompany.id });
       setTags(prev => [...prev, tag]);
       setForm(prev => ({ ...prev, tags: [...prev.tags, tag.id] }));
-      setNewTagName('');
-      setShowNewTag(false);
-    } catch (err) {
-      alert(err.message);
-    }
+      setNewTagName(''); setShowNewTag(false);
+    } catch (err) { alert(err.message); }
   };
 
   const createCategory = async () => {
@@ -169,11 +302,8 @@ export default function Transactions() {
       const cat = await api.createCategory({ name: newCatName, type: newCatType, company_id: selectedCompany.id });
       setCategories(prev => [...prev, cat]);
       setForm(prev => ({ ...prev, category_id: String(cat.id) }));
-      setNewCatName('');
-      setShowNewCat(false);
-    } catch (err) {
-      alert(err.message);
-    }
+      setNewCatName(''); setShowNewCat(false);
+    } catch (err) { alert(err.message); }
   };
 
   const filteredCategories = categories.filter(c => c.type === form.type);
@@ -206,11 +336,17 @@ export default function Transactions() {
             <Filter size={16} /> Filters
           </button>
         </div>
-        {canWrite && (
-          <button onClick={openCreate} className="btn-primary">
-            <Plus size={16} /> Add Transaction
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <DownloadButton
+            companyId={selectedCompany.id}
+            filters={{ from: filterFrom, to: filterTo, type: filterType }}
+          />
+          {canWrite && (
+            <button onClick={openCreate} className="btn-primary">
+              <Plus size={16} /> Add Transaction
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -247,7 +383,7 @@ export default function Transactions() {
                 <th className="text-left px-5 py-3 font-medium text-surface-500 dark:text-surface-400">Category</th>
                 <th className="text-left px-5 py-3 font-medium text-surface-500 dark:text-surface-400">Tags</th>
                 <th className="text-right px-5 py-3 font-medium text-surface-500 dark:text-surface-400">Amount</th>
-                <th className="text-center px-5 py-3 font-medium text-surface-500 dark:text-surface-400 w-20">Files</th>
+                <th className="text-center px-5 py-3 font-medium text-surface-500 dark:text-surface-400 w-24">Files</th>
                 {canWrite && <th className="text-center px-5 py-3 font-medium text-surface-500 dark:text-surface-400 w-24">Actions</th>}
               </tr>
             </thead>
@@ -284,9 +420,18 @@ export default function Transactions() {
                   </td>
                   <td className="px-5 py-3 text-center">
                     {txn.attachments?.length > 0 && (
-                      <div className="inline-flex items-center gap-1 text-surface-400">
-                        <Paperclip size={14} />
-                        <span className="text-xs">{txn.attachments.length}</span>
+                      <div className="inline-flex items-center gap-1">
+                        {txn.attachments.map(att => (
+                          <button
+                            key={att.id}
+                            onClick={() => setPreviewAttachment(att)}
+                            className="inline-flex items-center gap-1 text-primary-500 hover:text-primary-600 transition-colors"
+                            title={att.original_name}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        ))}
+                        <span className="text-xs text-surface-400 ml-0.5">{txn.attachments.length}</span>
                       </div>
                     )}
                   </td>
@@ -316,6 +461,11 @@ export default function Transactions() {
           </div>
         )}
       </div>
+
+      {/* Bill Preview Modal */}
+      {previewAttachment && (
+        <PreviewModal attachment={previewAttachment} onClose={() => setPreviewAttachment(null)} />
+      )}
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -392,7 +542,7 @@ export default function Transactions() {
                   {tags.map(t => (
                     <button key={t.id} type="button" onClick={() => toggleTag(t.id)}
                       className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${form.tags.includes(t.id) ? 'ring-2 ring-offset-1 dark:ring-offset-surface-900' : 'opacity-60 hover:opacity-100'}`}
-                      style={{ borderColor: t.color, color: t.color, ...(form.tags.includes(t.id) ? { backgroundColor: t.color + '20', ringColor: t.color } : {}) }}>
+                      style={{ borderColor: t.color, color: t.color, ...(form.tags.includes(t.id) ? { backgroundColor: t.color + '20' } : {}) }}>
                       <Tag size={10} /> {t.name}
                     </button>
                   ))}
@@ -405,8 +555,8 @@ export default function Transactions() {
                 <label className="label">Attachments (Bills, Receipts)</label>
                 <label className="flex items-center justify-center gap-2 px-4 py-4 border-2 border-dashed border-surface-300 dark:border-surface-700 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-500/5 transition-colors">
                   <Upload size={18} className="text-surface-400" />
-                  <span className="text-sm text-surface-500">Click to upload files</span>
-                  <input type="file" multiple className="hidden" onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                  <span className="text-sm text-surface-500">Click to upload files (images or PDF)</span>
+                  <input type="file" multiple accept="image/*,.pdf" className="hidden" onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
                 </label>
                 {files.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -420,11 +570,12 @@ export default function Transactions() {
                 )}
                 {editing?.attachments?.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    <p className="text-xs text-surface-400 mb-1">Existing files:</p>
+                    <p className="text-xs text-surface-400 mb-1">Existing attachments (click to preview):</p>
                     {editing.attachments.map(a => (
-                      <a key={a.id} href={`/uploads/${a.stored_name}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-800 rounded-lg text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                        <Download size={12} /> {a.original_name}
-                      </a>
+                      <button key={a.id} type="button" onClick={() => setPreviewAttachment(a)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-800 rounded-lg text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors w-full text-left">
+                        <Eye size={12} /> {a.original_name}
+                      </button>
                     ))}
                   </div>
                 )}

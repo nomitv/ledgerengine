@@ -94,16 +94,23 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_user_companies_company ON user_companies(company_id);
   `);
 
-  // Seed default admin user if no users exist
+  // Seed default admin user if no users exist.
+  // All values are configurable via environment variables.
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
   if (userCount.count === 0) {
-    const hash = bcrypt.hashSync('admin123', 10);
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminEmail    = process.env.ADMIN_EMAIL    || 'admin@ledgerengine.local';
+    const adminName     = process.env.ADMIN_NAME     || 'Administrator';
+
+    const hash = bcrypt.hashSync(adminPassword, 10);
     db.prepare(`
       INSERT INTO users (username, email, password_hash, display_name, role)
-      VALUES ('admin', 'admin@fintrack.local', ?, 'Administrator', 'super_admin')
-    `).run(hash);
-    console.log('✓ Default admin user created (admin / admin123)');
+      VALUES (?, ?, ?, ?, 'super_admin')
+    `).run(adminUsername, adminEmail, hash, adminName);
+    console.log(`✓ Default admin created  →  ${adminUsername} / ${adminPassword}`);
   }
+
 }
 
 initializeDatabase();

@@ -34,6 +34,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/companies', require('./routes/companies'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/reports', require('./routes/reports'));
+
 
 // NOTE: /uploads is NOT served statically — files are served via authenticated
 // GET /api/transactions/attachments/:filename instead.
