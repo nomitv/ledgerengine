@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Generate with: openssl rand -base64 48
+      # See README to learn how to generate a secure secret on Windows/Mac/Linux
       # Set JWT_SECRET in a .env file (see .env.example) — never commit real secrets
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in .env or environment}
       # Default admin credentials (only used on first startup when DB is empty)
