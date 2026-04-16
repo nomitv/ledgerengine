@@ -3,6 +3,9 @@ import { api } from '../api';
 
 const AuthContext = createContext();
 
+const TOKEN_KEY   = 'le_token';
+const COMPANY_KEY = 'le_company';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -10,13 +13,19 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const initAuth = useCallback(async () => {
-    const token = localStorage.getItem('fintrack_token');
+    // Support old key migration transparently
+    const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('fintrack_token');
     if (!token) { setLoading(false); return; }
+    // Migrate old key
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.removeItem('fintrack_token');
+    }
     try {
       const data = await api.me();
       setUser(data.user);
       setCompanies(data.companies);
-      const savedCompany = localStorage.getItem('fintrack_company');
+      const savedCompany = localStorage.getItem(COMPANY_KEY) || localStorage.getItem('fintrack_company');
       if (savedCompany) {
         const found = data.companies.find(c => c.id === parseInt(savedCompany));
         setSelectedCompany(found || data.companies[0] || null);
@@ -24,7 +33,7 @@ export function AuthProvider({ children }) {
         setSelectedCompany(data.companies[0] || null);
       }
     } catch {
-      localStorage.removeItem('fintrack_token');
+      localStorage.removeItem(TOKEN_KEY);
     }
     setLoading(false);
   }, []);
@@ -33,7 +42,7 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     const data = await api.login(username, password);
-    localStorage.setItem('fintrack_token', data.token);
+    localStorage.setItem(TOKEN_KEY, data.token);
     setUser(data.user);
     setCompanies(data.companies);
     setSelectedCompany(data.companies[0] || null);
@@ -41,6 +50,9 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(COMPANY_KEY);
+    // Clean up old keys if still present
     localStorage.removeItem('fintrack_token');
     localStorage.removeItem('fintrack_company');
     setUser(null);
@@ -50,7 +62,7 @@ export function AuthProvider({ children }) {
 
   const selectCompany = (company) => {
     setSelectedCompany(company);
-    if (company) localStorage.setItem('fintrack_company', company.id);
+    if (company) localStorage.setItem(COMPANY_KEY, company.id);
   };
 
   const refreshCompanies = async () => {

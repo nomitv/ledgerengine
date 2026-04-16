@@ -16,7 +16,7 @@ function PreviewModal({ attachment, onClose }) {
 
   useEffect(() => {
     if (!attachment) return;
-    const token = localStorage.getItem('fintrack_token');
+    const token = localStorage.getItem('le_token');
     fetch(`/api/transactions/attachments/${attachment.stored_name}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -102,7 +102,7 @@ function DownloadButton({ companyId, filters }) {
 
   const download = (format) => {
     setOpen(false);
-    const token = localStorage.getItem('fintrack_token');
+    const token = localStorage.getItem('le_token');
     const params = new URLSearchParams({ company_id: companyId, format });
     if (filters.from)     params.set('from', filters.from);
     if (filters.to)       params.set('to', filters.to);

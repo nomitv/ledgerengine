@@ -1,8 +1,8 @@
 <div align="center">
 
-# 💰 FinTrack
+# 📒 LedgerEngine
 
-**A self-hosted, lightweight financial tracking dashboard for multiple companies**
+**A self-hosted financial management platform for multiple companies**
 
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com)
 [![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
@@ -40,9 +40,11 @@
 - **Invoice builder** — Customer details, line items, intra/inter-state GST toggle
 - **GST-compliant invoices** — CGST + SGST (intra-state) or IGST (inter-state), per-slab breakdown
 - **PDF invoices** — On-the-fly generation: company header, GSTIN, tax table, totals in INR
-- **Invoice lifecycle** — Draft → Issued (auto income transaction) → Paid / Cancelled
-- **Stock management** — Auto-decrements on invoice issue for tracked products
+- **Invoice lifecycle** — Draft → Issued (auto income transaction) → Paid / Cancelled\*
+- **Stock management** — Auto-decrements on issue, auto-restored on cancellation
 - **Company billing profile** — GSTIN, state code, address, phone stored per company
+
+> \* Cancelling an issued invoice automatically deletes its income transaction and restores stock. Paid invoices are immutable.
 
 ## 📸 Screenshots
 
@@ -58,58 +60,92 @@
 - [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
 
 ### 1. Clone & configure
-```bash
-git clone https://github.com/nomitv/fintrack.git
-cd fintrack
 
-# Create your environment file
+```bash
+git clone https://github.com/nomitv/ledgerengine.git
+cd ledgerengine
+
+# Create your environment file from the template
 cp .env.example .env
 ```
 
-Edit `.env` and set a strong secret:
-```env
-# Generate a strong secret: openssl rand -base64 48
-JWT_SECRET=your-long-random-secret-here
-```
+### 2. Generate a JWT secret
 
-### 2. Build & run
+> **Required.** The app will refuse to start without this.
+
+**Linux / macOS / WSL:**
 ```bash
-docker compose up -d
+openssl rand -base64 48
 ```
 
-### 3. Open
+**Windows PowerShell (no OpenSSL):**
+```powershell
+[Convert]::ToBase64String((1..48 | ForEach-Object { [byte](Get-Random -Max 256) }))
+```
+
+**Node.js (any platform):**
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
+
+Copy the output and paste it into `.env`:
+```env
+JWT_SECRET=<paste-your-generated-secret-here>
+```
+
+### 3. (Optional) Customize admin credentials
+
+Edit `.env` — these only apply on **first startup** when the database is empty:
+
+```env
+ADMIN_USERNAME=myadmin
+ADMIN_PASSWORD=StrongPassword123!
+ADMIN_EMAIL=admin@mycompany.com
+ADMIN_NAME=My Name
+```
+
+### 4. Build & run
+
+```bash
+docker compose up -d --build
+```
+
+### 5. Open in browser
+
 ```
 http://localhost:3000
 ```
 
-**Default credentials:** `admin` / `admin123`  
-> ⚠️ Change the admin password immediately after first login via **Settings → Change Password**.
+**Default credentials:** `admin` / `admin123` (or whatever you set in `.env`)
+
+> ⚠️ **Change the admin password immediately** after first login via **Settings → Change Password**.
 
 ---
 
 ## 🛠️ Development Setup
 
 ```bash
-# Backend (Express + SQLite)
+# Backend (Express + SQLite) — terminal 1
 cd backend
 npm install
-npm run dev        # Starts on :3000
+cp ../.env.example ../.env   # set JWT_SECRET in .env
+npm run dev                  # starts on :3000
 
-# Frontend (React + Vite) — in a new terminal
+# Frontend (React + Vite) — terminal 2
 cd frontend
 npm install
-npm run dev        # Starts on :5173, proxies API to :3000
+npm run dev                  # starts on :5173, proxies API to :3000
 ```
 
 ---
 
 ## ⚙️ Configuration
 
-All configuration is via environment variables. Set them in `.env` (copied from `.env.example`).
+All configuration is via environment variables. Copy `.env.example` to `.env` and fill in the values.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `JWT_SECRET` | **Yes** | — | Secret for signing JWT tokens. Use `openssl rand -base64 48` to generate. |
+| `JWT_SECRET` | **Yes** | — | Signs JWT tokens. Generate with `openssl rand -base64 48`. **Never commit this.** |
 | `PORT` | No | `3000` | HTTP port the server listens on |
 | `ADMIN_USERNAME` | No | `admin` | Default admin username (first-run only) |
 | `ADMIN_PASSWORD` | No | `admin123` | Default admin password (first-run only) |
@@ -124,7 +160,7 @@ All configuration is via environment variables. Set them in `.env` (copied from 
 ## 🏗️ Architecture
 
 ```
-fintrack/
+ledgerengine/
 ├── Dockerfile              # Multi-stage build (Alpine frontend → Slim backend)
 ├── docker-compose.yml      # Single-container deployment
 ├── .env.example            # Environment variable template
@@ -135,16 +171,20 @@ fintrack/
 │   │   └── auth.js         # JWT authentication + RBAC middleware
 │   └── routes/
 │       ├── auth.js         # Login, register, user management
-│       ├── companies.js    # Company CRUD + user assignment
+│       ├── companies.js    # Company CRUD + billing profile + user assignment
 │       ├── transactions.js # Transaction CRUD, categories, tags, attachments
-│       └── dashboard.js    # Analytics: summary, monthly trend, by-category
+│       ├── dashboard.js    # Analytics: summary, monthly trend, by-category
+│       ├── reports.js      # PDF & CSV report generation
+│       ├── inventory.js    # Product catalog, barcode lookup
+│       └── billing.js      # Invoice CRUD, GST calc, PDF generation
 └── frontend/
     ├── vite.config.js
     └── src/
-        ├── api.js          # Axios-based API client
+        ├── api.js          # Typed API client
         ├── context/        # AuthContext, ThemeContext
         ├── components/     # Layout, Sidebar, TopBar, StatCard
-        └── pages/          # Login, Dashboard, Transactions, Companies, Settings
+        └── pages/          # Login, Dashboard, Transactions, Inventory,
+                            # Billing, InvoiceBuilder, Companies, Settings
 ```
 
 **Tech stack:**
@@ -159,8 +199,8 @@ fintrack/
 
 | Version | Highlights |
 |---------|------------|
-| `v0.3.0` | Inventory & Billing module — products, barcode scan/gen, GST invoicing, PDF |
-| `v0.2.0` | Report download (PDF/CSV), bill preview modal, configurable admin |
+| `v0.3.0` | Inventory & Billing — products, barcode scan/gen, GST invoicing, PDF, stock management |
+| `v0.2.0` | Report download (PDF/CSV), bill preview modal, configurable admin credentials |
 | `v0.1.0` | Initial release — transactions, dashboard, RBAC, Docker, security hardening |
 
 ---
@@ -173,15 +213,15 @@ fintrack/
 - File uploads restricted to **images and PDFs only** (MIME type allowlist)
 - **Path traversal protection** on attachment serving (basename sanitization + DB ownership check)
 - **No secrets in the Docker image** — `JWT_SECRET` must be provided at runtime
-- SQLite database stored in a Docker volume, never exposed externally
+- SQLite database stored in a Docker named volume, never exposed externally
 - `docker compose` requires `JWT_SECRET` to be explicitly set (fails fast if missing)
 
 ---
 
 ## 👤 User Roles
 
-| Role | Create Company | Manage Users | Add Transactions | View Only |
-|------|:--------------:|:------------:|:----------------:|:---------:|
+| Role | Create Company | Manage Users | Write Transactions / Invoices | View Only |
+|------|:--------------:|:------------:|:-----------------------------:|:---------:|
 | Super Admin | ✅ | ✅ | ✅ | ✅ |
 | Admin | ✅ | ✅ | ✅ | ✅ |
 | Manager | ❌ | ❌ | ✅ | ✅ |
@@ -191,16 +231,20 @@ fintrack/
 
 ## 🗄️ Data Persistence
 
-All data is stored in a named Docker volume (`fintrack-data`):
+All data is stored in a named Docker volume (`ledgerengine-data`):
 
 ```bash
 # Backup
-docker run --rm -v fintrack_fintrack-data:/data -v $(pwd):/backup \
-  alpine tar czf /backup/fintrack-backup.tar.gz /data
+docker run --rm \
+  -v ledgerengine_ledgerengine-data:/data \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/ledgerengine-backup.tar.gz /data
 
 # Restore
-docker run --rm -v fintrack_fintrack-data:/data -v $(pwd):/backup \
-  alpine tar xzf /backup/fintrack-backup.tar.gz -C /
+docker run --rm \
+  -v ledgerengine_ledgerengine-data:/data \
+  -v $(pwd):/backup \
+  alpine tar xzf /backup/ledgerengine-backup.tar.gz -C /
 ```
 
 ---

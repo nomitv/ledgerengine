@@ -4,14 +4,20 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('fintrack_theme');
-    if (saved) return saved === 'dark';
+    // Migrate old key
+    const old = localStorage.getItem('fintrack_theme');
+    const val = localStorage.getItem('le_theme') || old;
+    if (old && !localStorage.getItem('le_theme')) {
+      localStorage.setItem('le_theme', old);
+      localStorage.removeItem('fintrack_theme');
+    }
+    if (val) return val === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    localStorage.setItem('fintrack_theme', dark ? 'dark' : 'light');
+    localStorage.setItem('le_theme', dark ? 'dark' : 'light');
   }, [dark]);
 
   const toggleTheme = () => setDark(prev => !prev);

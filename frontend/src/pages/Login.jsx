@@ -38,10 +38,10 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25 mb-4">
-            <span className="text-white font-bold text-2xl">F</span>
+            <span className="text-white font-bold text-2xl">L</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">FinTrack</h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1 text-sm">Financial tracking dashboard</p>
+          <h1 className="text-2xl font-bold tracking-tight">LedgerEngine</h1>
+          <p className="text-surface-500 dark:text-surface-400 mt-1 text-sm">Financial management platform</p>
         </div>
 
         {/* Card */}
@@ -99,7 +99,7 @@ export default function Login() {
           </form>
 
           <p className="text-center text-xs text-surface-400 dark:text-surface-500 mt-6">
-            Default: admin / admin123
+            Default credentials: admin / admin123
           </p>
         </div>
       </div>

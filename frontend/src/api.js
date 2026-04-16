@@ -2,14 +2,14 @@ const BASE = '/api';
 
 function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  const token = localStorage.getItem('fintrack_token');
+  const token = localStorage.getItem('le_token');
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
 
 function authHeaders() {
   const headers = {};
-  const token = localStorage.getItem('fintrack_token');
+  const token = localStorage.getItem('le_token');
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -93,7 +93,7 @@ export const api = {
   updateInvoiceStatus: (id, status) => request(`/billing/invoices/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   deleteInvoice: (id) => request(`/billing/invoices/${id}`, { method: 'DELETE' }),
   downloadInvoicePdf: (id) => {
-    const token = localStorage.getItem('fintrack_token');
+    const token = localStorage.getItem('le_token');
     return fetch(`/api/billing/invoices/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
   },
 };

@@ -1,15 +1,16 @@
 services:
-  fintrack:
+  ledgerengine:
     build: .
-    container_name: fintrack
+    container_name: ledgerengine
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - fintrack-data:/app/data
+      - ledgerengine-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # Generate with: openssl rand -base64 48
       # Set JWT_SECRET in a .env file (see .env.example) — never commit real secrets
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in .env or environment}
       # Default admin credentials (only used on first startup when DB is empty)
@@ -25,5 +26,5 @@ services:
       retries: 3
 
 volumes:
-  fintrack-data:
+  ledgerengine-data:
     driver: local

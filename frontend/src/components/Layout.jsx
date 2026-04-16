@@ -6,6 +6,9 @@ import TopBar from './TopBar';
 const pageTitles = {
   '/': 'Dashboard',
   '/transactions': 'Transactions',
+  '/inventory': 'Inventory',
+  '/billing': 'Billing',
+  '/billing/new': 'New Invoice',
   '/companies': 'Companies',
   '/settings': 'Settings'
 };
@@ -13,7 +16,9 @@ const pageTitles = {
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const title = pageTitles[location.pathname] || 'FinTrack';
+  // Match /billing/:id/edit pattern too
+  const title = pageTitles[location.pathname]
+    || (location.pathname.startsWith('/billing/') ? 'Invoice' : 'LedgerEngine');
 
   return (
     <div className="min-h-screen flex">

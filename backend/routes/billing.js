@@ -204,10 +204,35 @@ router.put('/invoices/:id/status', authenticate, (req, res) => {
     const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     if (!checkAccess(req.user, invoice.company_id, 'manager')) return res.status(403).json({ error: 'No write access' });
-    db.prepare('UPDATE invoices SET status = ? WHERE id = ?').run(status, req.params.id);
+
+    // Cannot cancel a paid invoice — too late to reverse
+    if (status === 'cancelled' && invoice.status === 'paid') {
+      return res.status(400).json({ error: 'A paid invoice cannot be cancelled. Create a credit note manually.' });
+    }
+
+    // When cancelling an issued invoice, delete the auto-created income transaction
+    // so it doesn't inflate the company financials
+    if (status === 'cancelled' && invoice.status === 'issued' && invoice.transaction_id) {
+      db.prepare('DELETE FROM transactions WHERE id = ?').run(invoice.transaction_id);
+    }
+
+    // Restore stock if cancelling an issued invoice
+    if (status === 'cancelled' && invoice.status === 'issued') {
+      const items = db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all(invoice.id);
+      for (const item of items) {
+        if (item.product_id) {
+          db.prepare('UPDATE products SET stock_qty = stock_qty + ? WHERE id = ? AND track_stock = 1')
+            .run(item.quantity, item.product_id);
+        }
+      }
+    }
+
+    db.prepare('UPDATE invoices SET status = ?, transaction_id = CASE WHEN ? = ? THEN NULL ELSE transaction_id END WHERE id = ?')
+      .run(status, status, 'cancelled', req.params.id);
     res.json(getInvoiceWithItems(req.params.id));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 
 // GET /api/billing/invoices/:id/pdf — generate invoice PDF
 router.get('/invoices/:id/pdf', authenticate, (req, res) => {
