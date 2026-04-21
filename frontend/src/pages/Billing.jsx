@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { Plus, FileText, CheckCircle, Clock, Ban, DollarSign, Download, Eye, Trash2 } from 'lucide-react';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 const STATUS_CONFIG = {
   draft:     { label: 'Draft',     icon: Clock,        cls: 'bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400' },
@@ -30,6 +31,8 @@ export default function Billing() {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
+
 
   const canWrite = ['super_admin', 'admin', 'manager'].includes(user?.role);
 
@@ -76,14 +79,16 @@ export default function Billing() {
     } catch (err) { alert(err.message); }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this invoice?')) return;
-    let hard = false;
-    if (user?.role === 'super_admin') {
-      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+  const handleDelete = (id) => setDeleteCandidate(id);
+
+  const executeDelete = async (hard) => {
+    if (!deleteCandidate) return;
+    try { 
+      await api.deleteInvoice(deleteCandidate, hard); 
+      setInvoices(prev => prev.filter(inv => inv.id !== deleteCandidate)); 
     }
-    try { await api.deleteInvoice(id, hard); setInvoices(prev => prev.filter(inv => inv.id !== id)); }
     catch (err) { alert(err.message); }
+    finally { setDeleteCandidate(null); }
   };
 
   if (!selectedCompany) return (
@@ -211,6 +216,12 @@ export default function Billing() {
           </div>
         )}
       </div>
+      <ConfirmDeleteModal 
+        isOpen={!!deleteCandidate} 
+        onClose={() => setDeleteCandidate(null)} 
+        onConfirm={executeDelete} 
+        itemName="this invoice" 
+      />
     </div>
   );
 }

@@ -213,7 +213,7 @@ router.put('/invoices/:id/status', authenticate, (req, res) => {
     // When cancelling an issued invoice, delete the auto-created income transaction
     // so it doesn't inflate the company financials
     if (status === 'cancelled' && invoice.status === 'issued' && invoice.transaction_id) {
-      db.prepare('DELETE FROM transactions WHERE id = ?').run(invoice.transaction_id);
+      db.prepare('UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(invoice.transaction_id);
     }
 
     // Restore stock if cancelling an issued invoice
@@ -272,10 +272,11 @@ router.get('/invoices/:id/pdf', authenticate, (req, res) => {
     doc.rect(40, billToY, 250, 75).fillAndStroke('#f9fafb', '#e5e7eb');
     doc.fillColor('#6b7280').fontSize(8).font('Helvetica-Bold').text('BILL TO', 50, billToY + 8);
     doc.fillColor('#111827').font('Helvetica')
-      .text(invoice.customer_name || 'Customer', 50, billToY + 20, { width: 230 })
-      .text(invoice.customer_gstin ? `GSTIN: ${invoice.customer_gstin}` : '', 50, { width: 230 })
-      .text(invoice.customer_address || '', 50, { width: 230 })
-      .text(invoice.customer_phone ? `Ph: ${invoice.customer_phone}` : '', 50, { width: 230 });
+      .text(invoice.customer_name || 'Customer', 50, billToY + 20, { width: 230 });
+    
+    if (invoice.customer_gstin) doc.text(`GSTIN: ${invoice.customer_gstin}`, { width: 230 });
+    if (invoice.customer_address) doc.text(invoice.customer_address, { width: 230 });
+    if (invoice.customer_phone) doc.text(`Ph: ${invoice.customer_phone}`, { width: 230 });
 
     doc.y = billToY + 90;
 

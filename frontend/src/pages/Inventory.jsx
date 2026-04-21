@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { Plus, Search, Edit3, Trash2, X, Package, Barcode, ChevronDown, RefreshCw } from 'lucide-react';
 import JsBarcode from 'jsbarcode';
 
@@ -155,6 +156,7 @@ export default function Inventory() {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -305,6 +307,7 @@ export default function Inventory() {
           onClose={() => { setShowModal(false); setEditing(null); }}
         />
       )}
-    </div>
+          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this product" />
+</div>
   );
 }

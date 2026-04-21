@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import {
   Plus, Search, Filter, Trash2, Edit3, Paperclip, X, Upload,
   ChevronLeft, ChevronRight, Tag, Download, FileText, Eye,
@@ -156,6 +157,8 @@ export default function Transactions() {
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
+
 
   // Filters
   const [filterType, setFilterType] = useState('');
@@ -273,14 +276,13 @@ export default function Transactions() {
     setSubmitting(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this transaction?')) return;
-    let hard = false;
-    if (user?.role === 'super_admin') {
-      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
-    }
-    try { await api.deleteTransaction(id, hard); fetchTransactions(); }
+  const handleDelete = (id) => setDeleteCandidate(id);
+
+  const executeDelete = async (hard) => {
+    if (!deleteCandidate) return;
+    try { await api.deleteTransaction(deleteCandidate, hard); fetchTransactions(); }
     catch (err) { alert(err.message); }
+    finally { setDeleteCandidate(null); }
   };
 
   const toggleTag = (tagId) => {
@@ -595,6 +597,7 @@ export default function Transactions() {
           </div>
         </div>
       )}
-    </div>
+          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this transaction" />
+</div>
   );
 }

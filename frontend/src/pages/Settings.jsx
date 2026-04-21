@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../api';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { UserPlus, Trash2, X, Shield, Moon, Sun, Monitor } from 'lucide-react';
 
 export default function Settings() {
@@ -170,6 +171,7 @@ export default function Settings() {
           </div>
         </div>
       )}
-    </div>
+          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this user" />
+</div>
   );
 }

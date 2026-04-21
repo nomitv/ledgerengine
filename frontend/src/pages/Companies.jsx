@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { Plus, Trash2, Edit3, X, Users, Building2 } from 'lucide-react';
 
 export default function Companies() {
@@ -258,6 +259,7 @@ export default function Companies() {
           </div>
         </div>
       )}
-    </div>
+          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this company" />
+</div>
   );
 }
