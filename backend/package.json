@@ -1,7 +1,7 @@
 {
-  "name": "fintrack-backend",
-  "version": "1.0.0",
-  "description": "FinTrack - Self-hosted financial tracking API",
+  "name": "ledgerengine-backend",
+  "version": "0.4.0",
+  "description": "LedgerEngine - Self-hosted financial tracking API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

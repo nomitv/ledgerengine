@@ -56,8 +56,12 @@ export default function Companies() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this company and all its data? This cannot be undone.')) return;
+    let hard = false;
+    if (user?.role === 'super_admin') {
+      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+    }
     try {
-      await api.deleteCompany(id);
+      await api.deleteCompany(id, hard);
       await refreshCompanies();
     } catch (err) {
       alert(err.message);

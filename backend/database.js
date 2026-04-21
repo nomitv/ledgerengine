@@ -6,7 +6,18 @@ const fs = require('fs');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const db = new Database(path.join(DATA_DIR, 'fintrack.db'));
+// Auto-migration from FinTrack to LedgerEngine to prevent data loss
+const oldDbPath = path.join(DATA_DIR, 'fintrack.db');
+const newDbPath = path.join(DATA_DIR, 'ledgerengine.db');
+
+if (fs.existsSync(oldDbPath) && !fs.existsSync(newDbPath)) {
+  console.log('[Migration] Renaming legacy fintrack.db to ledgerengine.db...');
+  fs.renameSync(oldDbPath, newDbPath);
+  if (fs.existsSync(`${oldDbPath}-wal`)) fs.renameSync(`${oldDbPath}-wal`, `${newDbPath}-wal`);
+  if (fs.existsSync(`${oldDbPath}-shm`)) fs.renameSync(`${oldDbPath}-shm`, `${newDbPath}-shm`);
+}
+
+const db = new Database(newDbPath);
 
 // Enable WAL mode for better concurrent performance
 db.pragma('journal_mode = WAL');
@@ -179,6 +190,14 @@ function initializeDatabase() {
     try {
       db.exec(`ALTER TABLE companies ADD COLUMN ${col} TEXT`);
     } catch (_) { /* column already exists — safe to ignore */ }
+  }
+
+  // ── Soft Delete Migration ──────────────────────────────────────────────────
+  const softDeleteTables = ['users', 'companies', 'categories', 'tags', 'transactions', 'products', 'invoices'];
+  for (const table of softDeleteTables) {
+    try {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN deleted_at DATETIME`);
+    } catch (_) { /* column already exists */ }
   }
 
 }

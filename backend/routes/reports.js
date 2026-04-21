@@ -12,9 +12,8 @@ function checkAccess(user, companyId) {
   return !!row;
 }
 
-// Helper: format INR currency
 function inr(amount) {
-  return '₹' + Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'Rs. ' + Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // GET /api/reports/transactions?company_id=&from=&to=&type=&format=csv|pdf
@@ -27,7 +26,7 @@ router.get('/transactions', authenticate, (req, res) => {
   if (!company) return res.status(404).json({ error: 'Company not found' });
 
   // Build query
-  let where = ['t.company_id = ?'];
+  let where = ['t.company_id = ?', 't.deleted_at IS NULL'];
   let params = [company_id];
   if (from)  { where.push('t.date >= ?'); params.push(from); }
   if (to)    { where.push('t.date <= ?'); params.push(to); }

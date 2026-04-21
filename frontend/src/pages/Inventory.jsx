@@ -95,8 +95,13 @@ function ProductModal({ product, companyId, onSave, onClose }) {
               <input className="input" value={form.sku} onChange={e => f('sku', e.target.value)} placeholder="WM-001" />
             </div>
             <div>
-              <label className="label">Barcode</label>
-              <input className="input" value={form.barcode} onChange={e => f('barcode', e.target.value)} placeholder="8901234567890" />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Barcode</label>
+                <button type="button" onClick={() => f('barcode', Math.floor(100000000000 + Math.random() * 900000000000).toString())} className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                  Generate
+                </button>
+              </div>
+              <input className="input" value={form.barcode} onChange={e => f('barcode', e.target.value)} placeholder="Auto-generated if empty" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -181,7 +186,11 @@ export default function Inventory() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this product?')) return;
-    try { await api.deleteProduct(id); setProducts(prev => prev.filter(p => p.id !== id)); }
+    let hard = false;
+    if (user?.role === 'super_admin') {
+      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+    }
+    try { await api.deleteProduct(id, hard); setProducts(prev => prev.filter(p => p.id !== id)); }
     catch (err) { alert(err.message); }
   };
 

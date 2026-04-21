@@ -37,8 +37,12 @@ export default function Settings() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this user? This cannot be undone.')) return;
+    let hard = false;
+    if (user?.role === 'super_admin') {
+      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+    }
     try {
-      await api.deleteUser(id);
+      await api.deleteUser(id, hard);
       setUsers(prev => prev.filter(u => u.id !== id));
     } catch (err) {
       alert(err.message);

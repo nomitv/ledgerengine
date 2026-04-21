@@ -5,6 +5,7 @@ const fs = require('fs');
 
 // Initialize DB (runs schema + seed)
 require('./database');
+const { startBackupScheduler } = require('./backup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,4 +65,7 @@ app.listen(PORT, '0.0.0.0', () => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`   Default login: admin / admin123\n`);
   }
+  
+  // Start automated daily backup routine
+  startBackupScheduler();
 });

@@ -14,7 +14,7 @@ router.post('/login', (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE username = ? OR email = ?').get(username, username);
+    const user = db.prepare('SELECT * FROM users WHERE (username = ? OR email = ?) AND deleted_at IS NULL').get(username, username);
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
     const valid = bcrypt.compareSync(password, user.password_hash);
@@ -27,12 +27,12 @@ router.post('/login', (req, res) => {
       SELECT c.*, uc.role as user_role
       FROM companies c
       JOIN user_companies uc ON c.id = uc.company_id
-      WHERE uc.user_id = ?
+      WHERE uc.user_id = ? AND c.deleted_at IS NULL
     `).all(user.id);
 
     // Super admin gets all companies
     const allCompanies = user.role === 'super_admin'
-      ? db.prepare("SELECT *, 'admin' as user_role FROM companies").all()
+      ? db.prepare("SELECT *, 'admin' as user_role FROM companies WHERE deleted_at IS NULL").all()
       : companies;
 
     res.json({
@@ -78,11 +78,11 @@ router.post('/register', authenticate, requireRole('super_admin', 'admin'), (req
 // GET /api/auth/me
 router.get('/me', authenticate, (req, res) => {
   const companies = req.user.role === 'super_admin'
-    ? db.prepare("SELECT *, 'admin' as user_role FROM companies").all()
+    ? db.prepare("SELECT *, 'admin' as user_role FROM companies WHERE deleted_at IS NULL").all()
     : db.prepare(`
         SELECT c.*, uc.role as user_role
         FROM companies c JOIN user_companies uc ON c.id = uc.company_id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = ? AND c.deleted_at IS NULL
       `).all(req.user.id);
 
   res.json({ user: req.user, companies });
@@ -91,7 +91,7 @@ router.get('/me', authenticate, (req, res) => {
 // GET /api/auth/users - list all users (admin only)
 router.get('/users', authenticate, requireRole('super_admin', 'admin'), (req, res) => {
   try {
-    const users = db.prepare('SELECT id, username, email, display_name, role, created_at FROM users ORDER BY created_at DESC').all();
+    const users = db.prepare('SELECT id, username, email, display_name, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC').all();
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -104,7 +104,11 @@ router.delete('/users/:id', authenticate, requireRole('super_admin'), (req, res)
     if (parseInt(req.params.id) === req.user.id) {
       return res.status(400).json({ error: 'Cannot delete yourself' });
     }
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

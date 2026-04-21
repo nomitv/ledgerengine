@@ -49,7 +49,7 @@ router.get('/', authenticate, (req, res) => {
       if (!access) return res.status(403).json({ error: 'No access to this company' });
     }
 
-    let where = ['t.company_id = ?'];
+    let where = ['t.company_id = ?', 't.deleted_at IS NULL'];
     let params = [company_id];
 
     if (type) { where.push('t.type = ?'); params.push(type); }
@@ -198,7 +198,11 @@ router.delete('/:id', authenticate, (req, res) => {
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
     }
 
-    db.prepare('DELETE FROM transactions WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM transactions WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -266,7 +270,7 @@ router.get('/categories', authenticate, (req, res) => {
   try {
     const { company_id } = req.query;
     if (!company_id) return res.status(400).json({ error: 'company_id required' });
-    const categories = db.prepare('SELECT * FROM categories WHERE company_id = ? ORDER BY type, name').all(company_id);
+    const categories = db.prepare('SELECT * FROM categories WHERE company_id = ? AND deleted_at IS NULL ORDER BY type, name').all(company_id);
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -288,7 +292,11 @@ router.post('/categories', authenticate, (req, res) => {
 // DELETE /api/transactions/categories/:id
 router.delete('/categories/:id', authenticate, (req, res) => {
   try {
-    db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -301,7 +309,7 @@ router.get('/tags', authenticate, (req, res) => {
   try {
     const { company_id } = req.query;
     if (!company_id) return res.status(400).json({ error: 'company_id required' });
-    const tags = db.prepare('SELECT * FROM tags WHERE company_id = ? ORDER BY name').all(company_id);
+    const tags = db.prepare('SELECT * FROM tags WHERE company_id = ? AND deleted_at IS NULL ORDER BY name').all(company_id);
     res.json(tags);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -323,7 +331,11 @@ router.post('/tags', authenticate, (req, res) => {
 // DELETE /api/transactions/tags/:id
 router.delete('/tags/:id', authenticate, (req, res) => {
   try {
-    db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE tags SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

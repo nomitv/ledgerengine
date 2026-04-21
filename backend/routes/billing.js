@@ -17,7 +17,7 @@ function checkAccess(user, companyId, minRole = 'viewer') {
 function pad(n, len = 4) { return String(n).padStart(len, '0'); }
 
 function inr(n) {
-  return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  return 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 }
 
 // Generate next invoice number for a company: INV-YYYY-NNNN
@@ -42,7 +42,7 @@ function calcGst(unitPrice, qty, gstRate, intraState = true) {
 }
 
 function getInvoiceWithItems(invoiceId) {
-  const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoiceId);
+  const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL').get(invoiceId);
   if (!invoice) return null;
   invoice.items = db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id').all(invoiceId);
   return invoice;
@@ -57,7 +57,7 @@ router.get('/invoices', authenticate, (req, res) => {
     if (!company_id) return res.status(400).json({ error: 'company_id required' });
     if (!checkAccess(req.user, company_id)) return res.status(403).json({ error: 'No access' });
 
-    let where = ['company_id = ?'];
+    let where = ['company_id = ?', 'deleted_at IS NULL'];
     let params = [company_id];
     if (status) { where.push('status = ?'); params.push(status); }
     if (from)   { where.push("date(created_at) >= ?"); params.push(from); }
@@ -128,7 +128,7 @@ router.post('/invoices', authenticate, (req, res) => {
 // PUT /api/billing/invoices/:id — update draft
 router.put('/invoices/:id', authenticate, (req, res) => {
   try {
-    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     if (!checkAccess(req.user, invoice.company_id, 'manager')) return res.status(403).json({ error: 'No write access' });
     if (invoice.status === 'issued' || invoice.status === 'paid') return res.status(400).json({ error: 'Cannot edit an issued/paid invoice' });
@@ -167,7 +167,7 @@ router.put('/invoices/:id', authenticate, (req, res) => {
 // POST /api/billing/invoices/:id/issue — finalise & auto-create income transaction
 router.post('/invoices/:id/issue', authenticate, (req, res) => {
   try {
-    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     if (!checkAccess(req.user, invoice.company_id, 'manager')) return res.status(403).json({ error: 'No write access' });
     if (invoice.status !== 'draft') return res.status(400).json({ error: 'Only drafts can be issued' });
@@ -201,7 +201,7 @@ router.put('/invoices/:id/status', authenticate, (req, res) => {
   try {
     const { status } = req.body;
     if (!['paid', 'cancelled'].includes(status)) return res.status(400).json({ error: 'status must be paid or cancelled' });
-    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     if (!checkAccess(req.user, invoice.company_id, 'manager')) return res.status(403).json({ error: 'No write access' });
 
@@ -416,7 +416,11 @@ router.delete('/invoices/:id', authenticate, (req, res) => {
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     if (!checkAccess(req.user, invoice.company_id, 'admin')) return res.status(403).json({ error: 'Admins only' });
     if (['issued', 'paid'].includes(invoice.status)) return res.status(400).json({ error: 'Cannot delete issued/paid invoice — cancel it first' });
-    db.prepare('DELETE FROM invoices WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM invoices WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE invoices SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

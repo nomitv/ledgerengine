@@ -21,7 +21,7 @@ router.get('/products', authenticate, (req, res) => {
     if (!company_id) return res.status(400).json({ error: 'company_id required' });
     if (!checkAccess(req.user, company_id)) return res.status(403).json({ error: 'No access' });
 
-    let where = ['company_id = ?'];
+    let where = ['company_id = ?', 'deleted_at IS NULL'];
     let params = [company_id];
     if (search) { where.push('(name LIKE ? OR sku LIKE ? OR barcode LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
 
@@ -41,7 +41,7 @@ router.get('/products/barcode/:code', authenticate, (req, res) => {
     if (!checkAccess(req.user, company_id)) return res.status(403).json({ error: 'No access' });
 
     const product = db.prepare(
-      "SELECT * FROM products WHERE company_id = ? AND (barcode = ? OR sku = ?) LIMIT 1"
+      "SELECT * FROM products WHERE company_id = ? AND deleted_at IS NULL AND (barcode = ? OR sku = ?) LIMIT 1"
     ).get(company_id, req.params.code, req.params.code);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
@@ -55,10 +55,15 @@ router.post('/products', authenticate, (req, res) => {
     if (!company_id || !name) return res.status(400).json({ error: 'company_id and name required' });
     if (!checkWrite(req.user, company_id)) return res.status(403).json({ error: 'No write access' });
 
+    let finalBarcode = barcode;
+    if (!finalBarcode) {
+      finalBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+    }
+
     const result = db.prepare(`
       INSERT INTO products (company_id, name, sku, barcode, description, unit_price, gst_rate, hsn_code, stock_qty, track_stock)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(company_id, name, sku || null, barcode || null, description || null,
+    `).run(company_id, name, sku || null, finalBarcode, description || null,
        parseFloat(unit_price) || 0, parseFloat(gst_rate) ?? 18,
        hsn_code || null, parseInt(stock_qty) || 0, track_stock ? 1 : 1);
 
@@ -69,7 +74,7 @@ router.post('/products', authenticate, (req, res) => {
 // PUT /api/inventory/products/:id
 router.put('/products/:id', authenticate, (req, res) => {
   try {
-    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+    const product = db.prepare('SELECT * FROM products WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     if (!checkWrite(req.user, product.company_id)) return res.status(403).json({ error: 'No write access' });
 
@@ -98,7 +103,11 @@ router.delete('/products/:id', authenticate, (req, res) => {
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     if (!checkWrite(req.user, product.company_id)) return res.status(403).json({ error: 'No write access' });
-    db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE products SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

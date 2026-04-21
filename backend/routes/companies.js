@@ -9,12 +9,12 @@ router.get('/', authenticate, (req, res) => {
   try {
     let companies;
     if (req.user.role === 'super_admin') {
-      companies = db.prepare('SELECT * FROM companies ORDER BY name').all();
+      companies = db.prepare('SELECT * FROM companies WHERE deleted_at IS NULL ORDER BY name').all();
     } else {
       companies = db.prepare(`
         SELECT c.*, uc.role as user_role
         FROM companies c JOIN user_companies uc ON c.id = uc.company_id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = ? AND c.deleted_at IS NULL
         ORDER BY c.name
       `).all(req.user.id);
     }
@@ -87,7 +87,11 @@ router.put('/:id', authenticate, requireRole('super_admin', 'admin'), (req, res)
 // DELETE /api/companies/:id
 router.delete('/:id', authenticate, requireRole('super_admin'), (req, res) => {
   try {
-    db.prepare('DELETE FROM companies WHERE id = ?').run(req.params.id);
+    if (req.query.hard === 'true' && req.user.role === 'super_admin') {
+      db.prepare('DELETE FROM companies WHERE id = ?').run(req.params.id);
+    } else {
+      db.prepare('UPDATE companies SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -114,7 +118,7 @@ router.get('/:id/users', authenticate, (req, res) => {
     const users = db.prepare(`
       SELECT u.id, u.username, u.email, u.display_name, u.role as global_role, uc.role as company_role
       FROM users u JOIN user_companies uc ON u.id = uc.user_id
-      WHERE uc.company_id = ?
+      WHERE uc.company_id = ? AND u.deleted_at IS NULL
     `).all(req.params.id);
     res.json(users);
   } catch (err) {

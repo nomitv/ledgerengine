@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const db = require('../database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fintrack-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'ledgerengine-secret-change-in-production';
 
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;

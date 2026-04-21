@@ -275,7 +275,11 @@ export default function Transactions() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this transaction?')) return;
-    try { await api.deleteTransaction(id); fetchTransactions(); }
+    let hard = false;
+    if (user?.role === 'super_admin') {
+      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+    }
+    try { await api.deleteTransaction(id, hard); fetchTransactions(); }
     catch (err) { alert(err.message); }
   };
 

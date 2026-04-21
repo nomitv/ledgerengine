@@ -30,13 +30,13 @@ export const api = {
   me: () => request('/auth/me'),
   register: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   getUsers: () => request('/auth/users'),
-  deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),
+  deleteUser: (id, hard = false) => request(`/auth/users/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
 
   // Companies
   getCompanies: () => request('/companies'),
   createCompany: (data) => request('/companies', { method: 'POST', body: JSON.stringify(data) }),
   updateCompany: (id, data) => request(`/companies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCompany: (id) => request(`/companies/${id}`, { method: 'DELETE' }),
+  deleteCompany: (id, hard = false) => request(`/companies/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   getCompanyUsers: (id) => request(`/companies/${id}/users`),
   addCompanyUser: (id, data) => request(`/companies/${id}/users`, { method: 'POST', body: JSON.stringify(data) }),
   removeCompanyUser: (companyId, userId) => request(`/companies/${companyId}/users/${userId}`, { method: 'DELETE' }),
@@ -48,16 +48,16 @@ export const api = {
   },
   createTransaction: (formData) => request('/transactions', { method: 'POST', body: formData }),
   updateTransaction: (id, data) => request(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteTransaction: (id) => request(`/transactions/${id}`, { method: 'DELETE' }),
+  deleteTransaction: (id, hard = false) => request(`/transactions/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   uploadAttachment: (id, formData) => request(`/transactions/${id}/attachments`, { method: 'POST', body: formData }),
 
   // Categories & Tags
   getCategories: (companyId) => request(`/transactions/categories?company_id=${companyId}`),
   createCategory: (data) => request('/transactions/categories', { method: 'POST', body: JSON.stringify(data) }),
-  deleteCategory: (id) => request(`/transactions/categories/${id}`, { method: 'DELETE' }),
+  deleteCategory: (id, hard = false) => request(`/transactions/categories/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   getTags: (companyId) => request(`/transactions/tags?company_id=${companyId}`),
   createTag: (data) => request('/transactions/tags', { method: 'POST', body: JSON.stringify(data) }),
-  deleteTag: (id) => request(`/transactions/tags/${id}`, { method: 'DELETE' }),
+  deleteTag: (id, hard = false) => request(`/transactions/tags/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
 
   // Dashboard
   getSummary: (params) => {
@@ -82,7 +82,7 @@ export const api = {
   getProductByBarcode: (code, companyId) => request(`/inventory/products/barcode/${encodeURIComponent(code)}?company_id=${companyId}`),
   createProduct: (data) => request('/inventory/products', { method: 'POST', body: JSON.stringify(data) }),
   updateProduct: (id, data) => request(`/inventory/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteProduct: (id) => request(`/inventory/products/${id}`, { method: 'DELETE' }),
+  deleteProduct: (id, hard = false) => request(`/inventory/products/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
 
   // Billing
   getInvoices: (params) => { const qs = new URLSearchParams(params).toString(); return request(`/billing/invoices?${qs}`); },
@@ -91,7 +91,7 @@ export const api = {
   updateInvoice: (id, data) => request(`/billing/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   issueInvoice: (id) => request(`/billing/invoices/${id}/issue`, { method: 'POST' }),
   updateInvoiceStatus: (id, status) => request(`/billing/invoices/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
-  deleteInvoice: (id) => request(`/billing/invoices/${id}`, { method: 'DELETE' }),
+  deleteInvoice: (id, hard = false) => request(`/billing/invoices/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   downloadInvoicePdf: (id) => {
     const token = localStorage.getItem('le_token');
     return fetch(`/api/billing/invoices/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });

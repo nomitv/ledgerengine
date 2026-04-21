@@ -78,7 +78,11 @@ export default function Billing() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this invoice?')) return;
-    try { await api.deleteInvoice(id); setInvoices(prev => prev.filter(inv => inv.id !== id)); }
+    let hard = false;
+    if (user?.role === 'super_admin') {
+      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+    }
+    try { await api.deleteInvoice(id, hard); setInvoices(prev => prev.filter(inv => inv.id !== id)); }
     catch (err) { alert(err.message); }
   };
 

@@ -199,6 +199,7 @@ ledgerengine/
 
 | Version | Highlights |
 |---------|------------|
+| `v0.4.0` | Rebranding to LedgerEngine — Backup script, soft-deletion, and minor fixes |
 | `v0.3.0` | Inventory & Billing — products, barcode scan/gen, GST invoicing, PDF, stock management |
 | `v0.2.0` | Report download (PDF/CSV), bill preview modal, configurable admin credentials |
 | `v0.1.0` | Initial release — transactions, dashboard, RBAC, Docker, security hardening |
