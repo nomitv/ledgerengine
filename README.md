@@ -46,6 +46,12 @@
 
 > \* Cancelling an issued invoice automatically deletes its income transaction and restores stock. Paid invoices are immutable.
 
+### Maintenance & Admin (v0.4.0)
+- **Soft-Deletion System** — Items are archived instead of destroyed across all modules
+- **Super Admin Overrides** — Exclusive hard-delete toggle natively injected directly into confirmation dialogs
+- **Automated Backups** — Engine autonomously rotates 7-day `.db` shards without any cron overhead
+- **LedgerEngine Branding** — Seamless data migration over to the new global repository namespaces
+
 ## 📸 Screenshots
 
 | Login | Dashboard |
