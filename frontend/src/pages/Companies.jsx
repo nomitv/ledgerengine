@@ -9,6 +9,7 @@ export default function Companies() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', currency: 'INR', gstin: '', address: '', phone: '', email: '', state_code: '' });
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Users management
@@ -55,17 +56,17 @@ export default function Companies() {
     setSubmitting(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this company and all its data? This cannot be undone.')) return;
-    let hard = false;
-    if (user?.role === 'super_admin') {
-      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
-    }
+  const handleDelete = (id) => setDeleteCandidate(id);
+
+  const executeDelete = async (hard) => {
+    if (!deleteCandidate) return;
     try {
-      await api.deleteCompany(id, hard);
+      await api.deleteCompany(deleteCandidate, hard);
       await refreshCompanies();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setDeleteCandidate(null);
     }
   };
 
@@ -259,7 +260,12 @@ export default function Companies() {
           </div>
         </div>
       )}
-          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this company" />
-</div>
+      <ConfirmDeleteModal 
+        isOpen={!!deleteCandidate} 
+        onClose={() => setDeleteCandidate(null)} 
+        onConfirm={executeDelete} 
+        itemName="this company" 
+      />
+    </div>
   );
 }

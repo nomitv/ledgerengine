@@ -186,14 +186,16 @@ export default function Inventory() {
     setEditing(null);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this product?')) return;
-    let hard = false;
-    if (user?.role === 'super_admin') {
-      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
+  const handleDelete = (id) => setDeleteCandidate(id);
+
+  const executeDelete = async (hard) => {
+    if (!deleteCandidate) return;
+    try { 
+      await api.deleteProduct(deleteCandidate, hard); 
+      setProducts(prev => prev.filter(p => p.id !== deleteCandidate)); 
     }
-    try { await api.deleteProduct(id, hard); setProducts(prev => prev.filter(p => p.id !== id)); }
     catch (err) { alert(err.message); }
+    finally { setDeleteCandidate(null); }
   };
 
   if (!selectedCompany) return (
@@ -307,7 +309,12 @@ export default function Inventory() {
           onClose={() => { setShowModal(false); setEditing(null); }}
         />
       )}
-          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this product" />
-</div>
+      <ConfirmDeleteModal 
+        isOpen={!!deleteCandidate} 
+        onClose={() => setDeleteCandidate(null)} 
+        onConfirm={executeDelete} 
+        itemName="this product" 
+      />
+    </div>
   );
 }

@@ -11,6 +11,7 @@ export default function Settings() {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ username: '', email: '', password: '', display_name: '', role: 'viewer' });
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
@@ -36,17 +37,17 @@ export default function Settings() {
     setSubmitting(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this user? This cannot be undone.')) return;
-    let hard = false;
-    if (user?.role === 'super_admin') {
-      hard = confirm('As a super_admin: Do you want to HARD delete this permanently?\n\nPress OK for Hard Delete, Cancel for Soft Delete.');
-    }
+  const handleDelete = (id) => setDeleteCandidate(id);
+
+  const executeDelete = async (hard) => {
+    if (!deleteCandidate) return;
     try {
-      await api.deleteUser(id, hard);
-      setUsers(prev => prev.filter(u => u.id !== id));
+      await api.deleteUser(deleteCandidate, hard);
+      setUsers(prev => prev.filter(u => u.id !== deleteCandidate));
     } catch (err) {
       alert(err.message);
+    } finally {
+      setDeleteCandidate(null);
     }
   };
 
@@ -171,7 +172,12 @@ export default function Settings() {
           </div>
         </div>
       )}
-          <ConfirmDeleteModal isOpen={!!deleteCandidate} onClose={() => setDeleteCandidate(null)} onConfirm={executeDelete} itemName="this user" />
-</div>
+      <ConfirmDeleteModal 
+        isOpen={!!deleteCandidate} 
+        onClose={() => setDeleteCandidate(null)} 
+        onConfirm={executeDelete} 
+        itemName="this user" 
+      />
+    </div>
   );
 }
